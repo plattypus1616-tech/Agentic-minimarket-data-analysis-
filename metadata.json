@@ -1,0 +1,8 @@
+{
+  "name": "Alfamidi Enterprise Node Engine",
+  "description": "Deterministic Retail Data Execution & Sidak Target System for Alfamidi network",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
