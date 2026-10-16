@@ -1,54 +1,62 @@
-function doPost(e) {
-  try {
-    // 1. Kunci Target Sheet Secara Eksplisit (Ganti 'Status.' jika pakai Sheet1)
-    var ss = SpreadsheetApp.getActiveSpreadsheet();
-    var sheet = ss.getSheetByName("Status.") || ss.getSheets()[0];
-    
-    // 2. Parse Payload Teks dari Frontend
-    var params = JSON.parse(e.postData.contents);
-    var action = params.action;
 
-    // SKENARIO INSERT DATA
-    if (action === "insert") {
-      var rowData = [
-        new Date(),                       // Kolom 1: Waktu
-        params.sku_id || "-",             // Kolom 2: SKU
-        params.nama_sku || "-",           // Kolom 3: Nama
-        params.kategori || "-",           // Kolom 4: Kategori
-        params.avg_sales_7d || 0,         // Kolom 5: Sales 7D
-        params.sales_kemarin || 0,       // Kolom 6: Sales Kemarin
-        params.stok_onhand || 0,          // Kolom 7: Stok
-        params.days_to_expire || 0,       // Kolom 8: Expire
-        params.harga_satuan || 0,         // Kolom 9: Harga
-        "VALID"                           // Kolom 10: Status (Default)
-      ];
-      
-      sheet.appendRow(rowData);
-      var newRowIndex = sheet.getLastRow();
-      
-      return ContentService
-        .createTextOutput(JSON.stringify({ "status": "success", "row_number": newRowIndex }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
+// Komponen: GoogleSheetsSetupModal.jsx (Final Revision)
+import { useState } from 'react';
 
-    // SKENARIO CANCEL / ANULIR DATA
-    if (action === "cancel") {
-      var rowToUpdate = parseInt(params.row_number);
-      var statusColumn = 10; // Kolom J (Kolom ke-10 khusus Status)
+export default function GoogleSheetsSetup({ currentWebhookUrl, onSave }) {
+  const [webhookUrl, setWebhookUrl] = useState(currentWebhookUrl || '');
 
-      if (rowToUpdate && rowToUpdate > 0) {
-        sheet.getRange(rowToUpdate, statusColumn).setValue("DIBATALKAN");
-        sheet.getRange(rowToUpdate, statusColumn).setBackground("#ff9999");
-      }
-      
-      return ContentService
-        .createTextOutput(JSON.stringify({ "status": "success", "message": "Anulir Sukses" }))
-        .setMimeType(ContentService.MimeType.JSON);
-    }
+  // Replace this URL with your actual Google Docs / Notion / GitHub Gist link
+  const guideUrl = "
+https://gist.github.com/username/id-gist-apps-script
+";
 
-  } catch (err) {
-    return ContentService
-      .createTextOutput(JSON.stringify({ "status": "error", "message": err.toString() }))
-      .setMimeType(ContentService.MimeType.JSON);
-  }
+  return (
+    <div className="flex flex-col gap-5 p-5 bg-zinc-900 border border-zinc-700 rounded-lg max-w-md w-full">
+      
+      <div className="flex flex-col gap-1">
+        <h3 className="text-lg font-bold text-white">Integrasi Google Sheets</h3>
+        <p className="text-xs text-zinc-400">
+          Connect this app with your Spreadsheet for automatic record keeping.
+        </p>
+      </div>
+
+      {/* Links to External (Single Source of Truth) */}
+      <div className="bg-zinc-800 p-3 rounded border border-zinc-700 flex justify-between items-center">
+        <span className="text-sm text-zinc-300 font-medium">Belum punya Webhook?</span>
+        <a
+          href={guideUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-xs bg-indigo-600 text-white px-3 py-1.5 rounded font-bold hover:bg-indigo-500 transition-colors"
+        >
+          Read the Setup Guide &rarr;
+        </a>
+      </div>
+
+      {/* Pure Input (Without Coding Instructions) */}
+      <div className="flex flex-col gap-2">
+        <label className="text-xs font-bold text-zinc-400 uppercase tracking-widest">
+          URL Webhook Apps Script
+        </label>
+        <input
+          type="url"
+          value={webhookUrl}
+          onChange={(e) => setWebhookUrl(e.target.value)}
+          placeholder="
+https://script.google.com/macros/s/.../exec
+"
+          className="w-full p-3 text-sm bg-zinc-950 text-white border border-zinc-700 rounded focus:border-zinc-400 focus:outline-none font-mono"
+        />
+      </div>
+
+      <button
+        onClick={() => onSave(webhookUrl)}
+        className="w-full bg-zinc-100 text-zinc-950 py-3 rounded text-sm font-bold active:bg-zinc-300 transition-colors mt-2"
+      >
+        Simpan Webhook URL
+      </button>
+
+    </div>
+  );
 }
+
