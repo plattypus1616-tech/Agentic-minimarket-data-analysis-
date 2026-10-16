@@ -1,0 +1,54 @@
+function doPost(e) {
+  try {
+    // 1. Kunci Target Sheet Secara Eksplisit (Ganti 'Status.' jika pakai Sheet1)
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Status.") || ss.getSheets()[0];
+    
+    // 2. Parse Payload Teks dari Frontend
+    var params = JSON.parse(e.postData.contents);
+    var action = params.action;
+
+    // SKENARIO INSERT DATA
+    if (action === "insert") {
+      var rowData = [
+        new Date(),                       // Kolom 1: Waktu
+        params.sku_id || "-",             // Kolom 2: SKU
+        params.nama_sku || "-",           // Kolom 3: Nama
+        params.kategori || "-",           // Kolom 4: Kategori
+        params.avg_sales_7d || 0,         // Kolom 5: Sales 7D
+        params.sales_kemarin || 0,       // Kolom 6: Sales Kemarin
+        params.stok_onhand || 0,          // Kolom 7: Stok
+        params.days_to_expire || 0,       // Kolom 8: Expire
+        params.harga_satuan || 0,         // Kolom 9: Harga
+        "VALID"                           // Kolom 10: Status (Default)
+      ];
+      
+      sheet.appendRow(rowData);
+      var newRowIndex = sheet.getLastRow();
+      
+      return ContentService
+        .createTextOutput(JSON.stringify({ "status": "success", "row_number": newRowIndex }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // SKENARIO CANCEL / ANULIR DATA
+    if (action === "cancel") {
+      var rowToUpdate = parseInt(params.row_number);
+      var statusColumn = 10; // Kolom J (Kolom ke-10 khusus Status)
+
+      if (rowToUpdate && rowToUpdate > 0) {
+        sheet.getRange(rowToUpdate, statusColumn).setValue("DIBATALKAN");
+        sheet.getRange(rowToUpdate, statusColumn).setBackground("#ff9999");
+      }
+      
+      return ContentService
+        .createTextOutput(JSON.stringify({ "status": "success", "message": "Anulir Sukses" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ "status": "error", "message": err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+}
