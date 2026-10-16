@@ -7,7 +7,7 @@ export default function GoogleSheetsSetup({ currentWebhookUrl, onSave }) {
 
   // Replace this URL with your actual Google Docs / Notion / GitHub Gist link
   const guideUrl = "
-https://gist.github.com/username/id-gist-apps-script
+https://github.com/plattypus1616-tech/Agentic-minimarket-data-analysis-/blob/main/URL%20webhook
 ";
 
   return (
