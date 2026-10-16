@@ -1,58 +1,54 @@
-import React, { useState, useEffect } from "react";
-import { X, FileSpreadsheet, Check, ExternalLink, Save } from "lucide-react";
+function doPost(e) {
+  try {
+    // 1. Kunci Target Sheet Secara Eksplisit (Ganti 'Status.' jika pakai Sheet1)
+    var ss = SpreadsheetApp.getActiveSpreadsheet();
+    var sheet = ss.getSheetByName("Sheet1") || ss.getSheets()[0];
+    
+    // 2. Parse Payload Teks dari Frontend
+    var params = JSON.parse(e.postData.contents);
+    var action = params.action;
 
-interface GoogleSheetsModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  webhookUrl: string;
-  onSaveWebhookUrl: (url: string) => void;
+    // SKENARIO INSERT DATA
+    if (action === "insert") {
+      var rowData = [
+        new Date(),                       // Kolom 1: Waktu
+        params.plu_code || "-",           // Kolom 2: PLU
+        params.nama_sku || "-",           // Kolom 3: Nama
+        params.kategori || "-",           // Kolom 4: Kategori
+        params.avg_sales_7d || 0,         // Kolom 5: Sales 7D
+        params.sales_kemarin || 0,       // Kolom 6: Sales Kemarin
+        params.stok_onhand || 0,          // Kolom 7: Stok
+        params.days_to_expire || 0,       // Kolom 8: Expire
+        params.harga_satuan || 0,         // Kolom 9: Harga
+        "VALID"                           // Kolom 10: Status (Default)
+      ];
+      
+      sheet.appendRow(rowData);
+      var newRowIndex = sheet.getLastRow();
+      
+      return ContentService
+        .createTextOutput(JSON.stringify({ "status": "success", "row_number": newRowIndex }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+    // SKENARIO CANCEL / ANULIR DATA
+    if (action === "cancel") {
+      var rowToUpdate = parseInt(params.row_number);
+      var statusColumn = 10; // Kolom J (Kolom ke-10 khusus Status)
+
+      if (rowToUpdate && rowToUpdate > 0) {
+        sheet.getRange(rowToUpdate, statusColumn).setValue("DIBATALKAN");
+        sheet.getRange(rowToUpdate, statusColumn).setBackground("#ff9999");
+      }
+      
+      return ContentService
+        .createTextOutput(JSON.stringify({ "status": "success", "message": "Anulir Sukses" }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+
+  } catch (err) {
+    return ContentService
+      .createTextOutput(JSON.stringify({ "status": "error", "message": err.toString() }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
 }
-
-export const GoogleSheetsModal: React.FC<GoogleSheetsModalProps> = ({ isOpen, onClose, webhookUrl, onSaveWebhookUrl }) => {
-  const [urlInput, setUrlInput] = useState(webhookUrl);
-  const [saved, setSaved] = useState(false);
-
-  useEffect(() => { setUrlInput(webhookUrl); }, [webhookUrl]);
-
-  if (!isOpen) return null;
-
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSaveWebhookUrl(urlInput.trim());
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
-
-  return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-6">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-          <div className="flex items-center gap-2">
-            <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
-            <h3 className="text-lg font-bold text-slate-100">Webhook Google Sheets</h3>
-          </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-white"><X className="w-5 h-5" /></button>
-        </div>
-
-        <form onSubmit={handleSave} className="space-y-3">
-          <label className="block text-xs font-semibold text-slate-300">URL Endpoint Apps Script Anda:</label>
-          <div className="flex gap-2">
-            <input
-              type="url"
-              placeholder="https://script.google.com/macros/s/.../exec"
-              value={urlInput}
-              onChange={(e) => setUrlInput(e.target.value)}
-              className="flex-1 bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-xs font-mono text-slate-200 focus:border-emerald-500"
-            />
-            <button type="submit" className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs rounded-xl flex items-center gap-1.5 shrink-0">
-              {saved ? <Check className="w-4 h-4" /> : <Save className="w-4 h-4" />} {saved ? "Tersimpan" : "Simpan URL"}
-            </button>
-          </div>
-          <a href="https://github.com/plattypus1616-tech/Agentic-minimarket-data-analysis-/blob/main/URL%20webhook" target="_blank" rel="noreferrer" className="text-[11px] text-emerald-400 hover:underline flex items-center gap-1">
-            <ExternalLink className="w-3 h-3" /> Cek repositori Github Gist untuk update Apps Script terbaru.
-          </a>
-        </form>
-      </div>
-    </div>
-  );
-};
